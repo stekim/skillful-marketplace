@@ -14,9 +14,16 @@ export default function HomePage() {
   const [bets, setBets] = useState<Bet[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const hasToken = typeof window !== "undefined" && !!getToken();
+  const [mounted, setMounted] = useState(false);
+  const [hasToken, setHasToken] = useState(false);
 
   useEffect(() => {
+    setMounted(true);
+    setHasToken(!!getToken());
+  }, []);
+
+  useEffect(() => {
+    if (!mounted) return;
     if (!hasToken) {
       setLoading(false);
       return;
@@ -26,7 +33,11 @@ export default function HomePage() {
       .then(setBets)
       .catch((e) => setError(e.message))
       .finally(() => setLoading(false));
-  }, [scope, hasToken]);
+  }, [scope, hasToken, mounted]);
+
+  if (!mounted) {
+    return <p className="text-zinc-500">Loading…</p>;
+  }
 
   if (!hasToken) {
     return (
