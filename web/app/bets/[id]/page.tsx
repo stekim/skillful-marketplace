@@ -3,6 +3,8 @@
 import { useParams, useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 
+import { SectionHeader } from "@/components/SectionHeader";
+import { LiquidButton } from "@/components/ui/liquid-glass-button";
 import { api } from "@/lib/api";
 import { formatCents, formatDate, statusColor } from "@/lib/format";
 import type { Bet, Claim, ScoutReport, User } from "@/lib/types";
@@ -48,186 +50,227 @@ export default function BetDetailPage() {
   }
 
   if (error && !bet) {
-    return <p className="text-rose-300">{error}</p>;
+    return (
+      <div className="border border-rose-500/40 bg-rose-500/10 p-4 text-sm text-rose-300">
+        {error}
+      </div>
+    );
   }
-  if (!bet || !me) return <p className="text-zinc-500">Loading…</p>;
+  if (!bet || !me)
+    return <p className="section-label text-zinc-500">Loading…</p>;
 
   const isCreator = me.id === bet.creator_id;
   const isOpponent = me.id === bet.opponent_id;
   const isParticipant = isCreator || isOpponent;
-  const myClaim = isCreator ? bet.creator_claim : isOpponent ? bet.opponent_claim : null;
+  const myClaim = isCreator
+    ? bet.creator_claim
+    : isOpponent
+      ? bet.opponent_claim
+      : null;
+
+  const idStr = String(bet.id).padStart(4, "0");
 
   return (
-    <div className="mx-auto max-w-2xl">
+    <div className="mx-auto max-w-4xl space-y-10">
       <button
         onClick={() => router.back()}
-        className="mb-4 text-sm text-zinc-400 hover:text-zinc-200"
+        className="section-label text-zinc-500 transition-colors hover:text-foreground"
       >
-        ← Back
+        ← Back to feed
       </button>
 
-      <div className="rounded-lg border border-zinc-800 bg-zinc-900/50 p-6">
-        <div className="flex items-start justify-between gap-4">
-          <h1 className="text-2xl font-semibold">{bet.title}</h1>
+      <SectionHeader
+        index={`BET / #${idStr}`}
+        title={bet.title}
+        tagline={bet.description ?? undefined}
+      >
+        <div className="mt-6 inline-flex">
           <span
-            className={`rounded-md border px-2 py-1 text-xs ${statusColor(bet.status)}`}
+            className={`border px-3 py-1 text-[10px] uppercase tracking-widest ${statusColor(
+              bet.status,
+            )}`}
           >
-            {bet.status}
+            {bet.status.replace("_", " ")}
           </span>
         </div>
-        {bet.description && (
-          <p className="mt-3 whitespace-pre-wrap text-zinc-300">{bet.description}</p>
+      </SectionHeader>
+
+      <dl className="grid grid-cols-2 gap-px bg-border border border-border sm:grid-cols-3">
+        <Cell label="Creator" value={`@${bet.creator_username}`} />
+        <Cell
+          label="Opponent"
+          value={
+            bet.opponent_username ? `@${bet.opponent_username}` : "—"
+          }
+        />
+        <Cell
+          label="Stake / side"
+          value={formatCents(bet.stake_cents)}
+          mono
+          accent
+        />
+        <Cell
+          label="Pot"
+          value={formatCents(bet.stake_cents * 2)}
+          mono
+          accent
+        />
+        <Cell label="Created" value={formatDate(bet.created_at)} />
+        <Cell label="Resolved" value={formatDate(bet.resolved_at)} />
+        {bet.status === "resolved" && (
+          <Cell
+            label="Winner"
+            value={
+              bet.winner_id === null
+                ? "Draw"
+                : bet.winner_id === bet.creator_id
+                  ? `@${bet.creator_username}`
+                  : `@${bet.opponent_username}`
+            }
+            sub={`by ${bet.resolved_by}`}
+          />
         )}
-        <dl className="mt-6 grid grid-cols-2 gap-3 text-sm">
-          <div>
-            <dt className="text-zinc-500">Creator</dt>
-            <dd className="font-medium">@{bet.creator_username}</dd>
-          </div>
-          <div>
-            <dt className="text-zinc-500">Opponent</dt>
-            <dd className="font-medium">
-              {bet.opponent_username ? `@${bet.opponent_username}` : "—"}
-            </dd>
-          </div>
-          <div>
-            <dt className="text-zinc-500">Stake (each)</dt>
-            <dd className="font-mono text-emerald-300">
-              {formatCents(bet.stake_cents)}
-            </dd>
-          </div>
-          <div>
-            <dt className="text-zinc-500">Pot</dt>
-            <dd className="font-mono text-emerald-300">
-              {formatCents(bet.stake_cents * 2)}
-            </dd>
-          </div>
-          <div>
-            <dt className="text-zinc-500">Created</dt>
-            <dd>{formatDate(bet.created_at)}</dd>
-          </div>
-          <div>
-            <dt className="text-zinc-500">Resolved</dt>
-            <dd>{formatDate(bet.resolved_at)}</dd>
-          </div>
-          {bet.status === "resolved" && (
-            <div className="col-span-2">
-              <dt className="text-zinc-500">Winner</dt>
-              <dd className="font-medium">
-                {bet.winner_id === null
-                  ? "Draw"
-                  : bet.winner_id === bet.creator_id
-                    ? `@${bet.creator_username}`
-                    : `@${bet.opponent_username}`}{" "}
-                <span className="text-xs text-zinc-500">
-                  (by {bet.resolved_by})
-                </span>
-              </dd>
-            </div>
-          )}
-          {(bet.creator_claim || bet.opponent_claim) && (
-            <div className="col-span-2">
-              <dt className="text-zinc-500">Claims</dt>
-              <dd className="text-sm">
-                creator: <span className="font-mono">{bet.creator_claim ?? "—"}</span>
-                {"  /  "}
-                opponent:{" "}
-                <span className="font-mono">{bet.opponent_claim ?? "—"}</span>
-              </dd>
-            </div>
-          )}
-        </dl>
-      </div>
+        {(bet.creator_claim || bet.opponent_claim) && (
+          <Cell
+            label="Claims"
+            value={`${bet.creator_claim ?? "—"} / ${bet.opponent_claim ?? "—"}`}
+            mono
+          />
+        )}
+      </dl>
 
       {error && (
-        <div className="mt-4 rounded-md border border-rose-500/30 bg-rose-500/10 p-2 text-sm text-rose-300">
+        <div className="border border-rose-500/40 bg-rose-500/10 p-3 text-sm text-rose-300">
           {error}
         </div>
       )}
 
-      <div className="mt-6 flex flex-wrap gap-2">
-        {bet.status === "open" && !isCreator && (
-          <>
-            <button
-              disabled={busy}
-              onClick={() =>
-                act(() => api(`/bets/${bet.id}/accept`, { method: "POST" }))
-              }
-              className="rounded-md bg-emerald-500 px-3 py-2 text-sm font-medium text-black hover:bg-emerald-400 disabled:opacity-50"
-            >
-              Accept bet ({formatCents(bet.stake_cents)})
-            </button>
-            <button
-              disabled={busy}
-              onClick={() =>
-                act(async () => {
-                  const r = await api<ScoutReport>(`/bets/${bet.id}/scout`, {
-                    method: "POST",
-                  });
-                  setScout(r);
-                })
-              }
-              className="rounded-md border border-zinc-700 px-3 py-2 text-sm text-zinc-200 hover:bg-zinc-800 disabled:opacity-50"
-            >
-              Use Scout Report
-            </button>
-          </>
-        )}
-
-        {bet.status === "open" && isCreator && (
-          <button
-            disabled={busy}
-            onClick={() =>
-              act(() => api(`/bets/${bet.id}/cancel`, { method: "POST" }))
-            }
-            className="rounded-md border border-zinc-700 px-3 py-2 text-sm text-zinc-200 hover:bg-zinc-800 disabled:opacity-50"
-          >
-            Cancel bet (refund stake)
-          </button>
-        )}
-
-        {isParticipant &&
-          (bet.status === "active" || bet.status === "pending_resolution") &&
-          !myClaim && (
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-zinc-400">Claim winner:</span>
-              {(["creator_wins", "opponent_wins", "draw"] as Claim[]).map((c) => (
-                <button
-                  key={c}
-                  disabled={busy}
-                  onClick={() =>
-                    act(() =>
-                      api(`/bets/${bet.id}/claim-winner`, {
-                        method: "POST",
-                        body: JSON.stringify({ claim: c }),
-                      }),
-                    )
-                  }
-                  className="rounded-md border border-zinc-700 px-3 py-1.5 text-sm hover:bg-zinc-800 disabled:opacity-50"
-                >
-                  {c.replace("_", " ")}
-                </button>
-              ))}
-            </div>
+      <div className="border-t border-border pt-8">
+        <div className="section-label text-zinc-500">Actions</div>
+        <div className="mt-4 flex flex-wrap items-center gap-3">
+          {bet.status === "open" && !isCreator && (
+            <>
+              <LiquidButton
+                disabled={busy}
+                size="lg"
+                onClick={() =>
+                  act(() => api(`/bets/${bet.id}/accept`, { method: "POST" }))
+                }
+              >
+                Accept ({formatCents(bet.stake_cents)}) →
+              </LiquidButton>
+              <LiquidButton
+                disabled={busy}
+                size="default"
+                onClick={() =>
+                  act(async () => {
+                    const r = await api<ScoutReport>(`/bets/${bet.id}/scout`, {
+                      method: "POST",
+                    });
+                    setScout(r);
+                  })
+                }
+              >
+                Scout opponent
+              </LiquidButton>
+            </>
           )}
 
-        {myClaim && bet.status !== "resolved" && (
-          <span className="rounded-md border border-zinc-700 px-3 py-2 text-sm text-zinc-300">
-            Your claim submitted: {myClaim}
-          </span>
-        )}
+          {bet.status === "open" && isCreator && (
+            <LiquidButton
+              disabled={busy}
+              size="default"
+              onClick={() =>
+                act(() => api(`/bets/${bet.id}/cancel`, { method: "POST" }))
+              }
+            >
+              Cancel + refund stake
+            </LiquidButton>
+          )}
+
+          {isParticipant &&
+            (bet.status === "active" || bet.status === "pending_resolution") &&
+            !myClaim && (
+              <div className="flex flex-wrap items-center gap-3">
+                <span className="section-label text-zinc-400">
+                  Claim winner
+                </span>
+                {(["creator_wins", "opponent_wins", "draw"] as Claim[]).map(
+                  (c) => (
+                    <LiquidButton
+                      key={c}
+                      disabled={busy}
+                      size="default"
+                      onClick={() =>
+                        act(() =>
+                          api(`/bets/${bet.id}/claim-winner`, {
+                            method: "POST",
+                            body: JSON.stringify({ claim: c }),
+                          }),
+                        )
+                      }
+                    >
+                      {c.replace("_", " ")}
+                    </LiquidButton>
+                  ),
+                )}
+              </div>
+            )}
+
+          {myClaim && bet.status !== "resolved" && (
+            <span className="border border-border px-3 py-2 text-sm text-zinc-300">
+              Your claim:{" "}
+              <span className="font-mono text-emerald-400">{myClaim}</span>
+            </span>
+          )}
+        </div>
       </div>
 
       {scout && (
-        <div className="mt-6 rounded-lg border border-sky-500/30 bg-sky-500/5 p-4 text-sm">
-          <div className="mb-1 font-medium text-sky-200">
-            Scout Report — @{scout.username}
+        <div className="border border-sky-500/40 bg-sky-500/10 p-5">
+          <div className="section-label text-sky-300">
+            Scout Report · @{scout.username}
           </div>
-          <div className="text-zinc-300">
-            {scout.wins}W / {scout.losses}L / {scout.draws}D across {scout.total_bets}{" "}
-            resolved bets. Avg stake:{" "}
-            <span className="font-mono">{formatCents(scout.avg_stake_cents)}</span>
+          <div className="display-tight mt-3 text-2xl text-foreground">
+            {scout.wins}W / {scout.losses}L / {scout.draws}D
+          </div>
+          <div className="mt-2 text-sm text-zinc-300">
+            Across {scout.total_bets} resolved bets. Avg stake:{" "}
+            <span className="font-mono text-sky-300">
+              {formatCents(scout.avg_stake_cents)}
+            </span>
           </div>
         </div>
+      )}
+    </div>
+  );
+}
+
+function Cell({
+  label,
+  value,
+  sub,
+  mono,
+  accent,
+}: {
+  label: string;
+  value: string;
+  sub?: string;
+  mono?: boolean;
+  accent?: boolean;
+}) {
+  return (
+    <div className="bg-background p-5">
+      <div className="section-label text-zinc-500">{label}</div>
+      <div
+        className={`mt-2 text-base ${mono ? "font-mono" : ""} ${
+          accent ? "text-emerald-400" : "text-foreground"
+        }`}
+      >
+        {value}
+      </div>
+      {sub && (
+        <div className="mt-1 text-xs text-zinc-500">{sub}</div>
       )}
     </div>
   );

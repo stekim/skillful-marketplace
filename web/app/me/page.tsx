@@ -2,6 +2,8 @@
 
 import { useCallback, useEffect, useState } from "react";
 
+import { SectionHeader, SubSection } from "@/components/SectionHeader";
+import { LiquidButton } from "@/components/ui/liquid-glass-button";
 import { api } from "@/lib/api";
 import { formatCents, formatDate } from "@/lib/format";
 import type { DailyBonusResult, Transaction, User, UserItem } from "@/lib/types";
@@ -34,7 +36,9 @@ export default function ProfilePage() {
     setMessage(null);
     setBusy(true);
     try {
-      const r = await api<DailyBonusResult>("/me/claim-daily", { method: "POST" });
+      const r = await api<DailyBonusResult>("/me/claim-daily", {
+        method: "POST",
+      });
       setMessage(r.message);
       await load();
     } catch (e) {
@@ -44,117 +48,133 @@ export default function ProfilePage() {
     }
   }
 
-  if (!user) return <p className="text-zinc-500">Loading…</p>;
+  if (!user)
+    return <p className="section-label text-zinc-500">Loading…</p>;
 
   const today = new Date().toISOString().slice(0, 10);
   const canClaim = user.last_daily_bonus_date !== today;
 
   return (
-    <div className="space-y-6">
-      <div className="rounded-lg border border-zinc-800 bg-zinc-900/50 p-6">
-        <div className="flex items-start justify-between gap-4">
+    <div className="space-y-12">
+      <SectionHeader
+        index="04 / PROFILE"
+        title={`@${user.username}`}
+        tagline="Your bankroll, your streak, your audit trail. Every dollar that ever moved through this account is in the transaction log."
+      >
+        {user.is_admin && (
+          <div className="mt-4 inline-block border border-amber-500/40 bg-amber-500/10 px-2 py-0.5 text-[10px] uppercase tracking-widest text-amber-300">
+            admin
+          </div>
+        )}
+      </SectionHeader>
+
+      <div className="grid gap-px border border-border bg-border sm:grid-cols-3">
+        <Stat label="Balance" value={formatCents(user.balance_cents)} accent />
+        <Stat label="Daily streak" value={`${user.daily_streak} days`} />
+        <Stat label="XP" value={`${user.xp}`} />
+      </div>
+
+      <div className="border border-border bg-secondary/20 p-6">
+        <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-semibold">@{user.username}</h1>
-            <p className="mt-1 text-sm text-zinc-400">
-              Streak: <span className="text-zinc-200">{user.daily_streak}</span> ·
-              XP: <span className="text-zinc-200">{user.xp}</span>
-              {user.is_admin && (
-                <span className="ml-2 rounded border border-amber-500/30 bg-amber-500/10 px-1.5 py-0.5 text-xs text-amber-300">
-                  admin
-                </span>
-              )}
+            <div className="section-label text-zinc-500">Daily bonus</div>
+            <div className="display-tight mt-2 text-2xl text-foreground">
+              {canClaim ? "Claim today's bonus" : "Already claimed"}
+            </div>
+            <p className="mt-2 max-w-md text-sm text-zinc-400">
+              Base $50, plus $10 per consecutive day, capped at a 7-day streak.
+              Miss a day and the streak resets — unless you have a Streak
+              Freeze.
             </p>
           </div>
-          <div className="text-right">
-            <div className="text-xs uppercase tracking-wide text-zinc-500">
-              Balance
-            </div>
-            <div className="font-mono text-2xl text-emerald-300">
-              {formatCents(user.balance_cents)}
-            </div>
-          </div>
-        </div>
-
-        <div className="mt-4 flex items-center gap-3">
-          <button
+          <LiquidButton
             disabled={!canClaim || busy}
             onClick={claimDaily}
-            className="rounded-md bg-emerald-500 px-3 py-1.5 text-sm font-medium text-black hover:bg-emerald-400 disabled:opacity-40"
+            size="lg"
           >
-            {canClaim ? "Claim daily bonus" : "Already claimed today"}
-          </button>
-          <span className="text-xs text-zinc-500">
-            Base $50 + $10/day for up to 7-day streak.
-          </span>
+            {canClaim ? "Claim →" : "Locked"}
+          </LiquidButton>
         </div>
 
         {error && (
-          <div className="mt-3 rounded-md border border-rose-500/30 bg-rose-500/10 p-2 text-sm text-rose-300">
+          <div className="mt-4 border border-rose-500/40 bg-rose-500/10 p-3 text-sm text-rose-300">
             {error}
           </div>
         )}
         {message && (
-          <div className="mt-3 rounded-md border border-emerald-500/30 bg-emerald-500/10 p-2 text-sm text-emerald-300">
+          <div className="mt-4 border border-emerald-500/40 bg-emerald-500/10 p-3 text-sm text-emerald-300">
             {message}
           </div>
         )}
       </div>
 
-      <section>
-        <h2 className="mb-3 text-lg font-semibold">Inventory</h2>
+      <SubSection
+        index="04/A · INVENTORY"
+        title="Power-ups in hand."
+        description="Consumables show charges remaining. Permanents are forever."
+      >
         {inventory.length === 0 ? (
-          <p className="text-sm text-zinc-500">
+          <p className="mt-8 text-sm text-zinc-500">
             Nothing yet — grab some power-ups in the shop.
           </p>
         ) : (
-          <div className="grid gap-3 sm:grid-cols-2">
+          <div className="mt-8 grid gap-px bg-border sm:grid-cols-2">
             {inventory.map((ui) => (
               <div
                 key={ui.id}
-                className="rounded-lg border border-zinc-800 bg-zinc-900/50 p-3"
+                className="flex flex-col gap-3 bg-background p-5"
               >
-                <div className="flex items-start justify-between gap-2">
-                  <div>
-                    <div className="font-medium">{ui.item.name}</div>
-                    <p className="mt-0.5 text-xs text-zinc-400">
-                      {ui.item.description}
-                    </p>
-                  </div>
-                  <span className="shrink-0 rounded-md border border-zinc-700 px-2 py-0.5 text-xs">
+                <div className="flex items-start justify-between">
+                  <span className="section-label text-zinc-500">
+                    {ui.item.slug}
+                  </span>
+                  <span className="border border-border px-2 py-0.5 text-[10px] uppercase tracking-widest text-zinc-300">
                     {ui.item.is_consumable
                       ? `${ui.uses_remaining} use${ui.uses_remaining === 1 ? "" : "s"}`
                       : "owned"}
                   </span>
                 </div>
+                <div className="display-tight text-xl text-foreground">
+                  {ui.item.name}
+                </div>
+                <p className="text-xs text-zinc-400">{ui.item.description}</p>
               </div>
             ))}
           </div>
         )}
-      </section>
+      </SubSection>
 
-      <section>
-        <h2 className="mb-3 text-lg font-semibold">Transactions</h2>
-        <div className="overflow-hidden rounded-lg border border-zinc-800">
+      <SubSection
+        index="04/B · TRANSACTIONS"
+        title="The audit log."
+        description="Every balance change, append-only, in chronological order."
+      >
+        <div className="mt-8 overflow-hidden border border-border">
           <table className="w-full text-sm">
-            <thead className="bg-zinc-900 text-left text-xs uppercase text-zinc-500">
+            <thead className="border-b border-border bg-secondary/40">
               <tr>
-                <th className="px-3 py-2">When</th>
-                <th className="px-3 py-2">Kind</th>
-                <th className="px-3 py-2">Note</th>
-                <th className="px-3 py-2 text-right">Delta</th>
+                <Th>When</Th>
+                <Th>Kind</Th>
+                <Th>Note</Th>
+                <Th align="right">Delta</Th>
               </tr>
             </thead>
             <tbody>
               {txs.map((t) => (
-                <tr key={t.id} className="border-t border-zinc-800">
-                  <td className="px-3 py-2 text-zinc-400">
+                <tr
+                  key={t.id}
+                  className="border-t border-border transition-colors hover:bg-secondary/30"
+                >
+                  <td className="px-4 py-3 text-zinc-400">
                     {formatDate(t.created_at)}
                   </td>
-                  <td className="px-3 py-2 font-mono text-xs">{t.kind}</td>
-                  <td className="px-3 py-2 text-zinc-400">{t.note ?? "—"}</td>
+                  <td className="px-4 py-3 font-mono text-xs text-zinc-300">
+                    {t.kind}
+                  </td>
+                  <td className="px-4 py-3 text-zinc-400">{t.note ?? "—"}</td>
                   <td
-                    className={`px-3 py-2 text-right font-mono ${
-                      t.delta_cents >= 0 ? "text-emerald-300" : "text-rose-300"
+                    className={`px-4 py-3 text-right font-mono ${
+                      t.delta_cents >= 0 ? "text-emerald-400" : "text-rose-400"
                     }`}
                   >
                     {t.delta_cents >= 0 ? "+" : ""}
@@ -166,7 +186,7 @@ export default function ProfilePage() {
                 <tr>
                   <td
                     colSpan={4}
-                    className="px-3 py-4 text-center text-zinc-500"
+                    className="px-4 py-6 text-center text-zinc-500"
                   >
                     No transactions yet.
                   </td>
@@ -175,7 +195,48 @@ export default function ProfilePage() {
             </tbody>
           </table>
         </div>
-      </section>
+      </SubSection>
     </div>
+  );
+}
+
+function Stat({
+  label,
+  value,
+  accent,
+}: {
+  label: string;
+  value: string;
+  accent?: boolean;
+}) {
+  return (
+    <div className="bg-background p-6">
+      <div className="section-label text-zinc-500">{label}</div>
+      <div
+        className={`display mt-3 text-3xl ${
+          accent ? "text-emerald-400" : "text-foreground"
+        }`}
+      >
+        {value}
+      </div>
+    </div>
+  );
+}
+
+function Th({
+  children,
+  align,
+}: {
+  children: React.ReactNode;
+  align?: "left" | "right";
+}) {
+  return (
+    <th
+      className={`px-4 py-3 text-[10px] uppercase tracking-widest text-zinc-500 ${
+        align === "right" ? "text-right" : "text-left"
+      }`}
+    >
+      {children}
+    </th>
   );
 }

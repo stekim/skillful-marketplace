@@ -15,18 +15,18 @@ export function formatDate(iso: string | null | undefined): string {
 export function statusColor(status: string): string {
   switch (status) {
     case "open":
-      return "bg-emerald-500/15 text-emerald-300 border-emerald-500/30";
+      return "bg-emerald-500/10 text-emerald-300 border-emerald-500/40";
     case "active":
-      return "bg-sky-500/15 text-sky-300 border-sky-500/30";
+      return "bg-sky-500/10 text-sky-300 border-sky-500/40";
     case "pending_resolution":
-      return "bg-amber-500/15 text-amber-300 border-amber-500/30";
+      return "bg-amber-500/10 text-amber-300 border-amber-500/40";
     case "disputed":
-      return "bg-rose-500/15 text-rose-300 border-rose-500/30";
+      return "bg-rose-500/10 text-rose-300 border-rose-500/40";
     case "resolved":
-      return "bg-zinc-500/15 text-zinc-300 border-zinc-500/30";
+      return "bg-zinc-500/10 text-zinc-300 border-zinc-500/40";
     case "canceled":
-      return "bg-zinc-600/15 text-zinc-400 border-zinc-600/30";
+      return "bg-zinc-500/5 text-zinc-500 border-zinc-700";
     default:
-      return "bg-zinc-500/15 text-zinc-300 border-zinc-500/30";
+      return "bg-zinc-500/10 text-zinc-300 border-zinc-700";
   }
 }
