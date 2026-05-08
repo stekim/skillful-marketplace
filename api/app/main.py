@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
-from app.routers import admin, auth, bets, items, me
+from app.routers import admin, auth, bets, events, items, me
 
 
 app = FastAPI(title="Skillful Marketplace API", version="0.1.0")
@@ -26,3 +26,4 @@ app.include_router(me.router)
 app.include_router(bets.router)
 app.include_router(items.router)
 app.include_router(admin.router)
+app.include_router(events.router)

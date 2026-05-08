@@ -104,3 +104,21 @@ class Transaction(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
+
+
+class Event(Base):
+    __tablename__ = "events"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[Optional[int]] = mapped_column(
+        ForeignKey("users.id"), nullable=True, index=True
+    )
+    session_id: Mapped[Optional[str]] = mapped_column(String(64), nullable=True, index=True)
+    name: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
+    path: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
+    properties: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
+    user_agent: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
+    ip: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )

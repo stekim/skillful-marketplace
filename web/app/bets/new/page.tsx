@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 
 import { SectionHeader } from "@/components/SectionHeader";
 import { LiquidButton } from "@/components/ui/liquid-glass-button";
+import { track } from "@/lib/analytics";
 import { api } from "@/lib/api";
 import { formatCents } from "@/lib/format";
 import type { Bet, User } from "@/lib/types";
@@ -26,18 +27,19 @@ export default function NewBetPage() {
     e.preventDefault();
     setError(null);
     setLoading(true);
+    const stake_cents = Math.round(stakeDollars * 100);
+    track("bet_post_submitted", { stake_cents });
     try {
       const bet = await api<Bet>("/bets", {
         method: "POST",
-        body: JSON.stringify({
-          title,
-          description,
-          stake_cents: Math.round(stakeDollars * 100),
-        }),
+        body: JSON.stringify({ title, description, stake_cents }),
       });
+      track("bet_post_succeeded", { bet_id: bet.id, stake_cents });
       router.push(`/bets/${bet.id}`);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Could not create bet");
+      const message = e instanceof Error ? e.message : "Could not create bet";
+      track("bet_post_failed", { stake_cents, reason: message });
+      setError(message);
     } finally {
       setLoading(false);
     }

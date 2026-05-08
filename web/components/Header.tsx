@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 import { LiquidButton } from "@/components/ui/liquid-glass-button";
+import { track } from "@/lib/analytics";
 import { api, clearAuth, getToken } from "@/lib/api";
 import { formatCents } from "@/lib/format";
 import type { User } from "@/lib/types";
@@ -36,6 +37,7 @@ export function Header() {
   }, []);
 
   function logout() {
+    track("logout_clicked");
     clearAuth();
     setUser(null);
     router.push("/login");

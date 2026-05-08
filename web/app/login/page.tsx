@@ -5,6 +5,7 @@ import { useState } from "react";
 
 import { SectionHeader } from "@/components/SectionHeader";
 import { LiquidButton } from "@/components/ui/liquid-glass-button";
+import { track } from "@/lib/analytics";
 import { api, setCachedUser, setToken } from "@/lib/api";
 import type { User } from "@/lib/types";
 
@@ -18,6 +19,7 @@ export default function LoginPage() {
     e.preventDefault();
     setError(null);
     setLoading(true);
+    track("login_submitted");
     try {
       const { token, user } = await api<{ token: string; user: User }>(
         "/auth/login",
@@ -25,10 +27,13 @@ export default function LoginPage() {
       );
       setToken(token);
       setCachedUser(user);
+      track("login_succeeded", { user_id: user.id, is_new: user.balance_cents === 100000 });
       router.push("/");
       router.refresh();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Login failed");
+      const message = e instanceof Error ? e.message : "Login failed";
+      track("login_failed", { reason: message });
+      setError(message);
     } finally {
       setLoading(false);
     }

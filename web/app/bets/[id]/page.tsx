@@ -5,6 +5,7 @@ import { useCallback, useEffect, useState } from "react";
 
 import { SectionHeader } from "@/components/SectionHeader";
 import { LiquidButton } from "@/components/ui/liquid-glass-button";
+import { track } from "@/lib/analytics";
 import { api } from "@/lib/api";
 import { formatCents, formatDate, statusColor } from "@/lib/format";
 import type { Bet, Claim, ScoutReport, User } from "@/lib/types";
@@ -154,7 +155,13 @@ export default function BetDetailPage() {
                 disabled={busy}
                 size="lg"
                 onClick={() =>
-                  act(() => api(`/bets/${bet.id}/accept`, { method: "POST" }))
+                  act(async () => {
+                    await api(`/bets/${bet.id}/accept`, { method: "POST" });
+                    track("bet_accepted", {
+                      bet_id: bet.id,
+                      stake_cents: bet.stake_cents,
+                    });
+                  })
                 }
               >
                 Accept ({formatCents(bet.stake_cents)}) →
@@ -167,6 +174,7 @@ export default function BetDetailPage() {
                     const r = await api<ScoutReport>(`/bets/${bet.id}/scout`, {
                       method: "POST",
                     });
+                    track("bet_scout_used", { bet_id: bet.id });
                     setScout(r);
                   })
                 }
@@ -181,7 +189,10 @@ export default function BetDetailPage() {
               disabled={busy}
               size="default"
               onClick={() =>
-                act(() => api(`/bets/${bet.id}/cancel`, { method: "POST" }))
+                act(async () => {
+                  await api(`/bets/${bet.id}/cancel`, { method: "POST" });
+                  track("bet_canceled", { bet_id: bet.id });
+                })
               }
             >
               Cancel + refund stake
@@ -202,12 +213,16 @@ export default function BetDetailPage() {
                       disabled={busy}
                       size="default"
                       onClick={() =>
-                        act(() =>
-                          api(`/bets/${bet.id}/claim-winner`, {
+                        act(async () => {
+                          await api(`/bets/${bet.id}/claim-winner`, {
                             method: "POST",
                             body: JSON.stringify({ claim: c }),
-                          }),
-                        )
+                          });
+                          track("bet_claim_submitted", {
+                            bet_id: bet.id,
+                            claim: c,
+                          });
+                        })
                       }
                     >
                       {c.replace("_", " ")}

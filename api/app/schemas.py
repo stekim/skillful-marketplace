@@ -115,3 +115,14 @@ class ScoutReport(BaseModel):
     draws: int
     avg_stake_cents: int
     total_bets: int
+
+
+class EventIn(BaseModel):
+    name: str = Field(min_length=1, max_length=64)
+    path: Optional[str] = Field(default=None, max_length=500)
+    session_id: Optional[str] = Field(default=None, max_length=64)
+    properties: dict = Field(default_factory=dict)
+
+
+class EventBatchIn(BaseModel):
+    events: list[EventIn] = Field(min_length=1, max_length=50)

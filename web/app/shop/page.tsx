@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 
 import { SectionHeader } from "@/components/SectionHeader";
 import { LiquidButton } from "@/components/ui/liquid-glass-button";
+import { track } from "@/lib/analytics";
 import { api } from "@/lib/api";
 import { formatCents } from "@/lib/format";
 import type { Item, User, UserItem } from "@/lib/types";
@@ -35,12 +36,20 @@ export default function ShopPage() {
     setError(null);
     setMessage(null);
     setBusy(slug);
+    track("shop_item_buy_clicked", { slug });
     try {
       const ui = await api<UserItem>(`/items/${slug}/buy`, { method: "POST" });
+      track("shop_item_purchased", {
+        slug,
+        item_id: ui.item.id,
+        price_cents: ui.item.price_cents,
+      });
       setMessage(`Purchased ${ui.item.name}`);
       await load();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Purchase failed");
+      const message = e instanceof Error ? e.message : "Purchase failed";
+      track("shop_item_purchase_failed", { slug, reason: message });
+      setError(message);
     } finally {
       setBusy(null);
     }

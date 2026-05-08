@@ -44,6 +44,22 @@ def current_user(request: Request, db: Session = Depends(get_db)) -> User:
     return user
 
 
+def optional_user(request: Request, db: Session = Depends(get_db)) -> User | None:
+    """Return the current user if a valid token is present, else None.
+
+    Used by endpoints that should accept anonymous traffic (e.g. event ingestion).
+    """
+    token = _token_from_request(request)
+    if not token:
+        return None
+    try:
+        payload = jwt.decode(token, settings.jwt_secret, algorithms=[settings.jwt_algorithm])
+        user_id = int(payload["sub"])
+    except (JWTError, KeyError, ValueError):
+        return None
+    return db.get(User, user_id)
+
+
 def require_admin(user: User = Depends(current_user)) -> User:
     if not user.is_admin:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admin required")

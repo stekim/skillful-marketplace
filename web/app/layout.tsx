@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
+import { Analytics } from "@/components/Analytics";
 import { Header } from "@/components/Header";
 import { Marquee } from "@/components/Marquee";
 
@@ -25,6 +26,7 @@ export default function RootLayout({
   return (
     <html lang="en" className={inter.variable}>
       <body className="min-h-screen bg-background bg-grain text-foreground antialiased">
+        <Analytics />
         <Marquee />
         <Header />
         <main className="mx-auto max-w-6xl px-6 py-12 sm:px-10">
