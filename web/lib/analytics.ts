@@ -1,4 +1,11 @@
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? "http://127.0.0.1:8000";
+function resolveApiBase(): string | null {
+  const raw = process.env.NEXT_PUBLIC_API_BASE;
+  if (!raw) return null;
+  const trimmed = raw.trim().replace(/\/+$/, "");
+  return trimmed || null;
+}
+
+const API_BASE = resolveApiBase();
 
 const SESSION_KEY = "skillful.session";
 const TOKEN_KEY = "skillful.token";
@@ -58,6 +65,12 @@ function scheduleFlush() {
 function flush(unloading: boolean): void {
   if (typeof window === "undefined") return;
   if (queue.length === 0) return;
+  if (!API_BASE) {
+    // No API configured. Drop the batch silently — analytics must never
+    // surface as a console error.
+    queue.length = 0;
+    return;
+  }
   const batch = queue.splice(0, queue.length);
   const body = JSON.stringify({ events: batch });
   const url = `${API_BASE}/events`;
@@ -85,6 +98,7 @@ function flush(unloading: boolean): void {
 
 export function track(name: string, properties: EventProps = {}): void {
   if (typeof window === "undefined") return;
+  if (!API_BASE) return;
   ensureListeners();
   queue.push({
     name,

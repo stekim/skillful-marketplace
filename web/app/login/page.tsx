@@ -6,7 +6,7 @@ import { useState } from "react";
 import { SectionHeader } from "@/components/SectionHeader";
 import { LiquidButton } from "@/components/ui/liquid-glass-button";
 import { track } from "@/lib/analytics";
-import { api, setCachedUser, setToken } from "@/lib/api";
+import { api, isApiConfigured, setCachedUser, setToken } from "@/lib/api";
 import type { User } from "@/lib/types";
 
 export default function LoginPage() {
@@ -14,6 +14,7 @@ export default function LoginPage() {
   const [username, setUsername] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const apiConfigured = isApiConfigured();
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -47,6 +48,17 @@ export default function LoginPage() {
         tagline="New usernames mint a fresh account with $1,000 of virtual currency. Existing names just log back in. No password — this is a stub auth, JWT under the hood."
       />
 
+      {!apiConfigured && (
+        <div className="mt-8 border border-amber-500/40 bg-amber-500/10 p-4 text-sm text-amber-200">
+          <div className="font-semibold">API not configured.</div>
+          <p className="mt-1 text-amber-100/80">
+            Set <code className="font-mono">NEXT_PUBLIC_API_BASE</code> in your
+            Vercel project to the public URL of the FastAPI server, then
+            redeploy. Login is disabled until the API is reachable.
+          </p>
+        </div>
+      )}
+
       <form
         onSubmit={submit}
         className="mt-10 space-y-4 border border-border bg-secondary/30 p-8"
@@ -69,7 +81,7 @@ export default function LoginPage() {
         <div className="pt-4">
           <LiquidButton
             type="submit"
-            disabled={loading}
+            disabled={loading || !apiConfigured}
             size="lg"
             className="w-full"
           >

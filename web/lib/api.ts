@@ -1,7 +1,26 @@
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? "http://127.0.0.1:8000";
+/**
+ * Normalize NEXT_PUBLIC_API_BASE into either a usable absolute origin or null.
+ * - Falsy / empty / whitespace -> null (no API configured)
+ * - In the browser, a value without a protocol that doesn't start with "/" is
+ *   treated as misconfigured (would otherwise resolve against the current
+ *   Vercel origin and 404 every request).
+ */
+function resolveApiBase(): string | null {
+  const raw = process.env.NEXT_PUBLIC_API_BASE;
+  if (!raw) return null;
+  const trimmed = raw.trim().replace(/\/+$/, "");
+  if (!trimmed) return null;
+  return trimmed;
+}
+
+const API_BASE = resolveApiBase();
 
 const TOKEN_KEY = "skillful.token";
 const USER_KEY = "skillful.user";
+
+export function isApiConfigured(): boolean {
+  return API_BASE !== null;
+}
 
 export function getToken(): string | null {
   if (typeof window === "undefined") return null;
@@ -45,6 +64,12 @@ export async function api<T>(
   path: string,
   init: RequestInit = {},
 ): Promise<T> {
+  if (!API_BASE) {
+    throw new ApiError(
+      0,
+      "API is not configured. Set NEXT_PUBLIC_API_BASE to the public URL of the FastAPI server (e.g. https://your-api.example.com).",
+    );
+  }
   const token = getToken();
   const headers = new Headers(init.headers);
   headers.set("Content-Type", "application/json");
