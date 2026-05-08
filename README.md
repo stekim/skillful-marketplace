@@ -146,6 +146,56 @@ skillful-marketplace/
 └── README.md
 ```
 
+## Deploying
+
+The repo is set up to deploy as **two Vercel projects** sharing the same git
+repo: a Next.js front-end and a FastAPI Python Serverless Function back-end.
+A managed Postgres lives separately (Neon free tier works well).
+
+### 1. Provision Postgres on Neon
+
+1. Sign up at https://console.neon.tech and create a project.
+2. From the dashboard, copy the **pooled** connection string (uses PgBouncer,
+   friendlier for serverless). Replace the leading `postgresql://` with
+   `postgresql+psycopg://` so SQLAlchemy uses psycopg3.
+3. Run migrations + seed against Neon from your laptop:
+
+   ```bash
+   cd api && source .venv/bin/activate
+   DATABASE_URL='postgresql+psycopg://...neon-pooler...?sslmode=require' alembic upgrade head
+   DATABASE_URL='postgresql+psycopg://...neon-pooler...?sslmode=require' python seed_items.py
+   ```
+
+### 2. Deploy the API to Vercel
+
+1. Vercel → **Add New → Project** → import this repo.
+2. Set **Root Directory** to `api`. Framework Preset can stay on auto.
+3. Under **Environment Variables**, set (Production, Preview, Development):
+   - `DATABASE_URL` — the Neon pooled URL (with `postgresql+psycopg://`)
+   - `JWT_SECRET` — a random 32+ char secret
+   - `CORS_ORIGINS` — comma-separated, e.g.
+     `https://skillful-marketplace-six.vercel.app,https://skillful-marketplace-git-main-<team>.vercel.app`
+4. Deploy. Note the API's URL (e.g. `https://skillful-marketplace-api.vercel.app`).
+5. Verify: `curl https://<api-url>/healthz` should return `{"status":"ok"}`.
+
+`api/vercel.json` rewrites every request to `api/api/index.py`, which exposes
+the FastAPI ASGI app. `api/app/db.py` automatically uses `NullPool` when
+`VERCEL=1` is set so cold-started function instances don't leak connections.
+
+### 3. Wire the web project to the deployed API
+
+1. Vercel → web project → **Settings → Environment Variables**.
+2. Set `NEXT_PUBLIC_API_BASE` to your API's URL (no trailing slash) for all
+   three environments. Redeploy.
+
+### Granting admin in production
+
+Open a Neon SQL console and run:
+
+```sql
+UPDATE users SET is_admin = true WHERE username = 'alice';
+```
+
 ## Next improvements (not in v1)
 
 - Real auth (password or OAuth), email verification
@@ -153,4 +203,3 @@ skillful-marketplace/
 - Chat / comments on bets
 - Anti-collusion and rate limiting
 - Real money / payments
-- Deploy to GCP (see `.cursor/skills/deploy-to-gcp-serverless/`)
